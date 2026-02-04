@@ -1,54 +1,76 @@
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+import numpy as np
 
 
-def auto_define_personas(df, features):
+# ------------------------------
+# Auto Persona Definition
+# ------------------------------
+def auto_define_personas(df):
 
-    summary = df.groupby('Cluster')[features].mean()
-    global_mean = summary.mean()
+    # Select only numeric columns
+    numeric_df = df.select_dtypes(include=np.number)
 
-    names = {}
+    # Remove Cluster column from averaging
+    numeric_features = [c for c in numeric_df.columns if c != "Cluster"]
 
-    for i in summary.index:
+    summary = df.groupby("Cluster")[numeric_features].mean()
 
-        high_features = summary.loc[i] > global_mean
+    names_map = {}
 
-        if high_features.sum() >= len(features) * 0.6:
-            names[i] = "High Value Customers"
+    for cluster in summary.index:
 
-        elif high_features.sum() <= len(features) * 0.3:
-            names[i] = "Low Engagement Customers"
+        row = summary.loc[cluster]
 
+        # Simple scoring logic
+        score = row.mean()
+
+        if score >= summary.values.mean():
+            names_map[cluster] = "High Value Customers"
+        elif score >= summary.values.mean() * 0.75:
+            names_map[cluster] = "Growth Potential Customers"
+        elif score >= summary.values.mean() * 0.50:
+            names_map[cluster] = "Moderate Customers"
         else:
-            names[i] = "Potential Growth Segment"
+            names_map[cluster] = "Low Engagement Customers"
 
-    return names
+    return names_map
 
 
+# ------------------------------
+# Main Clustering Function
+# ------------------------------
 def run_clustering(df, k):
 
     data = df.copy()
 
-    proc = data.drop(
-        columns=[c for c in data.columns if 'id' in c.lower()],
-        errors="ignore"
+    # Remove ID columns
+    ids = [c for c in data.columns if "id" in c.lower()]
+    data = data.drop(columns=ids)
+
+    # Encode categorical columns
+    for col in data.select_dtypes(include=["object"]).columns:
+        data[col] = LabelEncoder().fit_transform(data[col].astype(str))
+
+    # Select numeric only for ML
+    numeric_cols = data.select_dtypes(include=np.number).columns.tolist()
+
+    # Scaling
+    scaler = StandardScaler()
+    scaled = scaler.fit_transform(data[numeric_cols])
+
+    # KMeans
+    model = KMeans(
+        n_clusters=k,
+        init="k-means++",
+        random_state=42,
+        n_init=10
     )
 
-    for col in proc.select_dtypes(include=['object']).columns:
-        proc[col] = LabelEncoder().fit_transform(proc[col])
+    df["Cluster"] = model.fit_predict(scaled)
 
-    features = proc.select_dtypes(include=['number']).columns.tolist()
+    # Generate persona labels
+    names_map = auto_define_personas(df)
 
-    scaler = StandardScaler()
-    scaled = scaler.fit_transform(proc[features])
-
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-
-    data['Cluster'] = kmeans.fit_predict(scaled)
-
-    names_map = auto_define_personas(data, features)
-
-    data['Persona'] = data['Cluster'].map(names_map)
-
-    return data, scaled, features, names_map
+    return df, scaled, numeric_cols, names_map

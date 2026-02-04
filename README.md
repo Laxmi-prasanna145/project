@@ -1,2 +1,2 @@
-# project
-customer segmentation and targeting
+# Project
+Customer Segmentation & Targeting - Machine Learning

@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from scipy.cluster.hierarchy import dendrogram, linkage
 import plotly.express as px
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
 
-# ---------- Preprocessing + Clustering ----------
-def preprocess_and_cluster(df, k):
+# ---------- PREPROCESS ----------
+def preprocess(df):
 
     data = df.copy()
 
@@ -20,135 +24,217 @@ def preprocess_and_cluster(df, k):
     scaler = StandardScaler()
     scaled = scaler.fit_transform(data)
 
-    model = KMeans(n_clusters=k, random_state=42, n_init=10)
-    df["Cluster"] = model.fit_predict(scaled)
-
-    return df
+    return scaled, data.columns
 
 
-# ---------- AI Summary Generator ----------
-def generate_summary(cluster_df):
+# ---------- CLUSTER DEFINITION ----------
+def define_clusters(df):
 
-    size = len(cluster_df)
+    numeric_df = df.select_dtypes(include=np.number)
 
-    summary = f"""
-    🔍 This segment consists of **{size} customers**, representing a unique behavioral group.
+    cluster_profiles = numeric_df.groupby(df["Cluster"]).mean()
 
-    📊 The purchasing behaviour of this cluster shows distinct spending and demographic patterns compared to other clusters.
+    cluster_labels = {}
 
-    💡 Customers in this segment demonstrate specific engagement tendencies which can help businesses target marketing campaigns more effectively.
+    for cluster in cluster_profiles.index:
 
-    📈 The spending and income patterns indicate potential opportunities for revenue optimization and customer retention strategies.
+        mean_values = cluster_profiles.loc[cluster]
+        overall_mean = numeric_df.mean()
 
-    🎯 Business Recommendation: Personalized offers, loyalty programs, and targeted promotions can significantly improve engagement with this segment.
-    """
+        score = (mean_values - overall_mean).mean()
 
-    return summary
+        if score > 0.5:
+            label = "High Value / Premium Customers"
+        elif score > 0:
+            label = "Moderate Engagement Customers"
+        else:
+            label = "Low Value / Price Sensitive Customers"
+
+        cluster_labels[cluster] = label
+
+    return cluster_profiles, cluster_labels
 
 
-# ---------- Dashboard ----------
+# ---------- AI VISUAL SUMMARY ----------
+def visualization_summary(title):
+
+    summaries = {
+
+        "PCA": """
+        This visualization shows how well customer segments are separated in reduced dimensional space.
+        Distinct cluster separation indicates strong segmentation quality.
+        Overlapping clusters may indicate similar behavioral patterns between segments.
+        The distance between clusters reflects customer diversity across segments.
+        Clear separation suggests highly differentiated customer groups.
+        """,
+
+        "Radar": """
+        This chart compares average behavioral characteristics across customer segments.
+        It highlights which features dominate each cluster.
+        Wide spread between cluster lines indicates strong segment differentiation.
+        Similar patterns suggest overlapping customer behavior.
+        Helps identify strengths and weaknesses of each segment.
+        """,
+
+        "Heatmap": """
+        This heatmap reveals relationships between customer features.
+        Strong correlations suggest influencing variables for segmentation.
+        Helps analysts understand feature dependencies.
+        Highly correlated features may indicate redundant variables.
+        Identifies key drivers of customer behaviour.
+        """,
+
+        "Box": """
+        This boxplot shows the distribution of selected features across clusters.
+        It helps identify variability, median behaviour and outliers.
+        Wide spread indicates diverse customer behaviour.
+        Outliers highlight exceptional customer groups.
+        Useful for risk and opportunity identification.
+        """,
+
+        "Elbow": """
+        The elbow plot helps determine the optimal number of clusters.
+        The bending point indicates ideal segmentation complexity.
+        Too many clusters cause over segmentation.
+        Too few clusters hide meaningful customer differences.
+        This ensures scientifically justified clustering.
+        """,
+
+        "Dendrogram": """
+        This hierarchical visualization shows nested cluster relationships.
+        It helps understand customer similarity hierarchy.
+        Branch length represents behavioural distance.
+        Useful for exploratory segmentation validation.
+        Shows potential alternative clustering structures.
+        """
+    }
+
+    return summaries.get(title, "")
+
+
+# ---------- DASHBOARD ----------
 def clustering_dashboard():
 
-    st.title("📊 AI Customer Segmentation Platform")
+    st.title("🔬 Customer Segmentation Analytics")
 
     df = st.session_state.raw_df.copy()
     k = st.session_state.k
-    views = st.session_state.viz
+    viz = st.session_state.viz
 
-    df = preprocess_and_cluster(df, k)
+    scaled, features = preprocess(df)
 
-    # ================= REPORT VIEW =================
-    if "Report View (Detailed Visual Dashboards)" in views:
+    model = KMeans(n_clusters=k, random_state=42, n_init=10)
+    df["Cluster"] = model.fit_predict(scaled)
 
-        st.header("📑 Report View – Cluster Visual Analysis")
+    cluster_profiles, cluster_labels = define_clusters(df)
 
-        fig = px.pie(df, names="Cluster", hole=0.4,
-                     title="Customer Segment Distribution")
-        st.plotly_chart(fig, use_container_width=True)
+    # ---------- SHOW CLUSTER DEFINITIONS ----------
+    st.header("🧠 Cluster Definitions")
 
-        tabs = st.tabs([f"Cluster {i}" for i in range(k)])
+    for cluster, label in cluster_labels.items():
 
-        for i in range(k):
+        st.subheader(f"Cluster {cluster} : {label}")
 
-            cluster_df = df[df["Cluster"] == i]
+        st.write(cluster_profiles.loc[cluster])
+        st.info(f"""
+        This segment represents customers grouped based on similar behavioural and demographic attributes.
+        The profile indicates dominant purchasing characteristics and engagement trends.
+        Businesses can tailor marketing and product strategies according to this segment behaviour.
+        Segment specific campaigns improve conversion and customer retention.
+        This cluster plays a strategic role in overall revenue optimization.
+        """)
 
-            with tabs[i]:
+    st.divider()
 
-                if {"AnnualIncome", "SpendingScore"}.issubset(df.columns):
+    # ---------- PCA ----------
+    if "PCA Cluster Scatter" in viz:
 
-                    fig = px.scatter(
-                        cluster_df,
-                        x="AnnualIncome",
-                        y="SpendingScore",
-                        title=f"Cluster {i} Spending Pattern"
-                    )
+        st.header("📍 PCA Cluster Separation")
 
-                    st.plotly_chart(fig, use_container_width=True, key=f"scatter_{i}")
+        pca = PCA(n_components=2)
+        pca_data = pca.fit_transform(scaled)
 
-                if "Age" in df.columns:
+        pca_df = pd.DataFrame(pca_data, columns=["PC1", "PC2"])
+        pca_df["Cluster"] = df["Cluster"]
 
-                    fig = px.histogram(cluster_df, x="Age",
-                                       title=f"Cluster {i} Age Distribution")
-
-                    st.plotly_chart(fig, use_container_width=True, key=f"age_{i}")
-
-                st.info(generate_summary(cluster_df))
-
-
-    # ================= DATA VIEW =================
-    if "Data View (Dataset Understanding)" in views:
-
-        st.header("📂 Data View – Dataset Exploration")
-        st.dataframe(df)
-        st.write("Dataset Shape:", df.shape)
-        st.write("Column Data Types:")
-        st.write(df.dtypes)
-
-
-    # ================= MODEL VIEW =================
-    if "Model View (Feature Relationship Analysis)" in views:
-
-        st.header("🔗 Model View – Feature Relationships")
-
-        corr = df.select_dtypes(include="number").corr()
-
-        fig = px.imshow(corr, text_auto=True, title="Feature Relationship Heatmap")
-        st.plotly_chart(fig, use_container_width=True)
-
-
-    # ================= POWER QUERY VIEW =================
-    if "Power Query View (Data Cleaning Insights)" in views:
-
-        st.header("🧹 Power Query View – Data Cleaning Insights")
-
-        missing = df.isnull().sum().reset_index()
-        missing.columns = ["Column", "Missing Values"]
-
-        fig = px.bar(missing, x="Column", y="Missing Values",
-                     title="Missing Data Analysis")
+        fig = px.scatter(pca_df, x="PC1", y="PC2",
+                         color=pca_df["Cluster"].astype(str))
 
         st.plotly_chart(fig, use_container_width=True)
 
-        st.write("Duplicate Rows:", df.duplicated().sum())
+        st.info(visualization_summary("PCA"))
 
+    # ---------- RADAR ----------
+    if "Radar Cluster Profile" in viz:
 
-    # ================= EXECUTIVE DASHBOARD =================
-    if "Executive Dashboard View (Business KPI Overview)" in views:
+        st.header("🕸 Cluster Behaviour Radar")
 
-        st.header("📊 Executive KPI Dashboard")
+        fig = go.Figure()
 
-        total_customers = len(df)
-        avg_cluster = df["Cluster"].nunique()
+        for cluster in cluster_profiles.index:
 
-        col1, col2 = st.columns(2)
-
-        col1.metric("Total Customers", total_customers)
-        col2.metric("Total Segments", avg_cluster)
-
-        cluster_counts = df["Cluster"].value_counts().reset_index()
-        cluster_counts.columns = ["Cluster", "Customers"]
-
-        fig = px.bar(cluster_counts, x="Cluster", y="Customers",
-                     title="Customers Per Segment")
+            fig.add_trace(go.Scatterpolar(
+                r=cluster_profiles.loc[cluster].values,
+                theta=cluster_profiles.columns,
+                fill='toself',
+                name=f"Cluster {cluster}"
+            ))
 
         st.plotly_chart(fig, use_container_width=True)
+
+        st.info(visualization_summary("Radar"))
+
+    # ---------- HEATMAP ----------
+    if "Correlation Heatmap" in viz:
+
+        st.header("🔥 Feature Correlation")
+
+        corr = df.select_dtypes(include=np.number).corr()
+        fig = px.imshow(corr, text_auto=True)
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.info(visualization_summary("Heatmap"))
+
+    # ---------- ELBOW ----------
+    if "Elbow Method Analysis" in viz:
+
+        st.header("📉 Optimal Cluster Identification")
+
+        sse = []
+        k_range = range(1, 10)
+
+        for i in k_range:
+            km = KMeans(n_clusters=i, n_init=10)
+            km.fit(scaled)
+            sse.append(km.inertia_)
+
+        fig = px.line(x=list(k_range), y=sse)
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.info(visualization_summary("Elbow"))
+
+    # ---------- BOX ----------
+    if "Cluster Distribution Boxplots" in viz:
+
+        st.header("📦 Cluster Feature Distribution")
+
+        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        feature = st.selectbox("Select Feature", numeric_cols)
+
+        fig = px.box(df, x="Cluster", y=feature)
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.info(visualization_summary("Box"))
+
+    # ---------- DENDROGRAM ----------
+    if "Hierarchical Dendrogram" in viz:
+
+        st.header("🌳 Hierarchical Cluster Structure")
+
+        linked = linkage(scaled, method='ward')
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        dendrogram(linked)
+        st.pyplot(fig)
+
+        st.info(visualization_summary("Dendrogram"))

@@ -3,7 +3,7 @@ import pandas as pd
 
 def data_upload_page():
 
-    st.title("📂 Upload Customer Dataset")
+    st.title("📂 Upload Business Dataset")
 
     file = st.file_uploader("Upload CSV File", type=["csv"])
 
@@ -15,23 +15,24 @@ def data_upload_page():
         st.success("Dataset Uploaded Successfully")
         st.dataframe(df.head())
 
-        st.subheader("📊 Select Required Visualizations")
+        st.subheader("📊 Select Power BI View Type")
 
-        viz_options = [
-            "Market Share Pie",
-            "Income vs Spending Scatter",
-            "Age Distribution",
-            "Feature Correlation Heatmap"
+        powerbi_views = [
+            "Report View (Detailed Visual Dashboards)",
+            "Data View (Dataset Understanding)",
+            "Model View (Feature Relationship Analysis)",
+            "Power Query View (Data Cleaning Insights)",
+            "Executive Dashboard View (Business KPI Overview)"
         ]
 
         st.session_state.viz = st.multiselect(
-            "Select Visualizations",
-            viz_options,
-            default=["Market Share Pie"]
+            "Select Views You Want to Generate",
+            powerbi_views,
+            default=["Report View (Detailed Visual Dashboards)"]
         )
 
         st.session_state.k = st.slider("Select Number of Clusters", 2, 8, 4)
 
-        if st.button("Run Clustering"):
+        if st.button("Run AI Segmentation"):
             st.session_state.page = "dashboard"
             st.rerun()

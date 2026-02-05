@@ -9,17 +9,16 @@ def show_login():
         </style>
     ''', unsafe_allow_html=True)
     
-    st.write("#")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         st.title("🛡️ ClusterPro AI")
-        user = st.text_input("Username", placeholder="admin")
-        pw = st.text_input("Password", type="password", placeholder="admin123")
+        user = st.text_input("Username", key="login_user")
+        pw = st.text_input("Password", type="password", key="login_pass")
         if st.button("AUTHENTICATE"):
             if user == "admin" and pw == "admin123":
                 st.session_state.auth = True
                 st.rerun()
             else:
-                st.error("Invalid Credentials")
+                st.error("Access Denied")
         st.markdown('</div>', unsafe_allow_html=True)

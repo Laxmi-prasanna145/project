@@ -17,29 +17,26 @@ def get_elbow_data(df):
     return wcss
 
 def show_upload():
-    st.title("📂 Step 1: Data Configuration")
-    uploaded_file = st.file_uploader("Upload Customer Dataset (CSV)", type="csv")
+    st.title("📂 Data Configuration")
+    uploaded_file = st.file_uploader("Upload Customer Dataset (CSV)", type="csv", key="file_up")
     
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         st.session_state.raw_df = df
-        st.success("Dataset ready for analysis.")
         
-        st.divider()
-        st.subheader("Step 2: Business Customization")
         st.session_state.viz_choices = st.multiselect(
-            "Select Dashboards to Generate:",
-            ["PCA Global Separation", "Correlation Heatmap", "Economic Scatter Plot", "Behavioral Radar Chart", "Spend Box Plots"],
-            default=["PCA Global Separation", "Behavioral Radar Chart"]
+            "Dashboards to Generate:",
+            ["PCA Separation", "Correlation Heatmap", "Economic Analysis", "Behavioral Radar"],
+            default=["PCA Separation", "Behavioral Radar"],
+            key="choice_sel"
         )
         
-        if st.checkbox("Show Elbow Method Plot (Select Optimal Segments)"):
+        if st.checkbox("Show Elbow Method Plot"):
             wcss = get_elbow_data(df)
-            fig = px.line(x=range(1, 11), y=wcss, markers=True, title="Elbow Method: Finding the 'Bend' for Optimal K")
-            st.plotly_chart(fig)
+            fig = px.line(x=range(1, 11), y=wcss, markers=True, title="Optimal K Search")
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.session_state.k = st.number_input("Final Number of Segments (K)", 2, 10, 5)
-        
-        if st.button("GENERATE DASHBOARDS"):
+        st.session_state.k = st.number_input("Clusters (K)", 2, 10, 5, key="k_val")
+        if st.button("RUN ANALYSIS"):
             st.session_state.step = "process"
             st.rerun()

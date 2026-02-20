@@ -33,7 +33,7 @@ def show_results(df, scaled_data, features, choices, k, names_map):
         pca_res = PCA(n_components=2).fit_transform(scaled_data)
         pca_df = pd.DataFrame(pca_res, columns=['PC1', 'PC2'])
         pca_df['Persona'] = df['Persona']
-        fig = px.scatter(pca_df, x='PC1', y='PC2', color='Persona', title="AI Cluster Boundaries")
+        fig = px.scatter(pca_df, x='PC1', y='PC2', color='Persona', title="Cluster Boundaries")
         st.plotly_chart(fig, use_container_width=True)
         st.info("This map shows how distinct your customer groups are. High distance between colors means your marketing should be highly differentiated.")
 
@@ -63,9 +63,8 @@ def show_results(df, scaled_data, features, choices, k, names_map):
             # AI GENERATED SUMMARY
             st.markdown(f"""
             <div style="background-color:#f8f9fa; padding:20px; border-radius:10px; border-left: 5px solid #1f77b4;">
-                <h4 style="margin-top:0; color:#1f77b4;">AI Observation for {names_map[i]}</h4>
+                <h4 style="margin-top:0; color:#1f77b4;">Interpretation of Results{names_map[i]}</h4>
                 {generate_ai_text(c_data, df, inc_col, spd_col)}
-        
             """, unsafe_allow_html=True)
 
     if st.button("RESET ANALYSIS"):

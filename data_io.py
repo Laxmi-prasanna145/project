@@ -17,7 +17,7 @@ def get_elbow_data(df):
     return wcss
 
 def show_upload():
-    st.title("📂 Data Configuration")
+    st.title("Data Configuration")
     uploaded_file = st.file_uploader("Upload Customer Dataset (CSV)", type="csv", key="file_up")
     
     if uploaded_file:

@@ -1,24 +1,35 @@
 import streamlit as st
 
-def show_login():
-    st.markdown('''
-        <style>
-        .stApp { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
-        .login-card { background: white; padding: 50px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: #333; max-width: 450px; margin: auto; text-align: center; }
-        .stButton>button { background-color: #1e3c72; color: white; width: 100%; border-radius: 8px; font-weight: bold; }
-        </style>
-    ''', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.title("🛡️ ClusterPro AI")
-        user = st.text_input("Username", key="login_user")
-        pw = st.text_input("Password", type="password", key="login_pass")
-        if st.button("AUTHENTICATE"):
-            if user == "admin" and pw == "admin123":
-                st.session_state.auth = True
-                st.rerun()
-            else:
-                st.error("Access Denied")
-        st.markdown('</div>', unsafe_allow_html=True)
+# -------------------------
+# DEFAULT LOGIN PAGE
+# -------------------------
+
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
+if not st.session_state.auth:
+    st.title("Business Analyst")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "admin123":
+            st.session_state.auth = True
+            st.rerun()
+        else:
+            st.error("Invalid Credentials")
+
+    st.stop()   # This makes login page default
+
+# -------------------------
+# MAIN APPLICATION (Only runs after login)
+# -------------------------
+
+st.title("Customer Segmentation Dashboard")
+st.success("Welcome! You are logged in.")
+
+# Optional logout
+if st.button("Logout"):
+    st.session_state.auth = False
+    st.rerun()

@@ -32,10 +32,13 @@ if not st.session_state.auth:
 st.title("Customer Segmentation and Targeting")
 
 # Logout Button
-if st.button("Logout"):
-    st.session_state.auth = False
-    st.session_state.step = "upload"
-    st.rerun()
+col1, col2 = st.columns([8, 1])
+
+with col2:
+    if st.button("Logout"):
+        st.session_state.auth = False
+        st.session_state.step = "upload"
+        st.rerun()
 
 
 # -------------------------

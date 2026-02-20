@@ -32,7 +32,7 @@ if not st.session_state.auth:
 st.title("Customer Segmentation and Targeting")
 
 # Logout Button
-col1, col2 = st.columns([8, 1])
+col1, col2 = st.columns([6, 2])
 
 with col2:
     if st.button("Logout"):

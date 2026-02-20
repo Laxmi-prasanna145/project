@@ -22,7 +22,7 @@ def generate_ai_text(c_data, g_df, inc_col, spd_col):
     """
 
 def show_results(df, scaled_data, features, choices, k, names_map):
-    st.title("🚀 AI-Driven Business Insights")
+    st.title("Business Insights")
     
     # Identify key columns
     inc_col = next((c for c in df.columns if 'income' in c.lower()), None)
@@ -38,7 +38,7 @@ def show_results(df, scaled_data, features, choices, k, names_map):
         st.info("AI Insight: This map shows how distinct your customer groups are. High distance between colors means your marketing should be highly differentiated.")
 
     st.divider()
-    st.header("🔍 Individual Segment Deep-Dive")
+    st.header("Individual Segment Visuals")
     tabs = st.tabs([f"{names_map[i]}" for i in range(k)])
     
     # Prepare Radar Data (Safety: Numeric Only)
@@ -51,12 +51,12 @@ def show_results(df, scaled_data, features, choices, k, names_map):
             col_left, col_right = st.columns(2)
             
             with col_left:
-                st.subheader("📊 Purchasing Power")
+                st.subheader("Purchasing Power")
                 fig_scat = px.scatter(c_data, x=inc_col, y=spd_col, color_discrete_sequence=['#1f77b4'])
                 st.plotly_chart(fig_scat, use_container_width=True)
             
             with col_right:
-                st.subheader("🧬 Behavioral DNA")
+                st.subheader("Behavioral DNA")
                 fig_rad = go.Figure(data=go.Scatterpolar(r=norm_means.iloc[i].values, theta=features, fill='toself'))
                 st.plotly_chart(fig_rad, use_container_width=True)
             

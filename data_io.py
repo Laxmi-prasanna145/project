@@ -27,7 +27,6 @@ def show_upload():
         st.session_state.viz_choices = st.multiselect(
             "Dashboards to Generate:",
             ["PCA Separation", "Correlation Heatmap", "Economic Analysis", "Behavioral Radar"],
-            default=["PCA Separation", "Behavioral Radar"],
             key="choice_sel"
         )
         
